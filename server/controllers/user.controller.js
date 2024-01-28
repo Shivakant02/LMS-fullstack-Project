@@ -2,6 +2,12 @@ const { use } = require("../app");
 const User = require("../models/user.model");
 const { default: AppError } = require("../utils/appError");
 
+const cookieOptions = {
+    secure: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000,//7 days
+    httpOnly:true
+}
+
 const register =async (req,res) => {
     const { fullName, email, password } = req.body;
 
@@ -64,6 +70,15 @@ const login = async (req, res) => {
     }
 
     const token = await user.generateJWTToken();
+    user.password = undefined;
+
+    res.cookie('token', token, cookieOptions);
+
+    res.status(200).json({
+        success: true,
+        message: "User registered successfully",
+        user
+    })
     
 };
 
