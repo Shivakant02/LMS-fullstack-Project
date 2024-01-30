@@ -1,6 +1,9 @@
 import app from "../app.js";
 import User from "../models/user.model.js";
 import { default as AppError } from "../utils/appError.js";
+import cloudinary from 'cloudinary'
+import fs from 'fs/promises'
+
 
 const cookieOptions = {
     secure: true,
@@ -8,7 +11,7 @@ const cookieOptions = {
     httpOnly:true
 }
 
-const register =async (req,res) => {
+const register =async (req,res,next) => {
     const { fullName, email, password } = req.body;
 
 // if any field is empty
@@ -41,7 +44,31 @@ const register =async (req,res) => {
         return next(new AppError('user registration failed please try again.', 400));
     }
     
-// TODO: upload user picture
+    //  upload user picture
+    console.log(`File Details->`,JSON.stringify(req.file));
+    if (req.file) {
+       try {
+         const result = await cloudinary.v2.uploader.upload(req.file.path,{
+            folder: 'lms',
+            width: 250,
+            height: 250,
+            gravity: 'faces',
+            crop:'fill'
+        })
+
+        if (result) {
+            user.avatar.public_id = result.public_id;
+            user.avatar.secure_url = result.secure_url;
+
+            //remove file from local server
+
+            // fs.rm(`uploads/${req.file.filename}`)
+           }
+           
+       } catch (error) {
+        return next(new AppError(e.message||'file upload failed please try again.', 400));
+       }
+    }
 
     await user.save();
 
@@ -69,7 +96,7 @@ const login = async (req, res) => {
         return next(new AppError('email of password miss match'))
     }
 
-    const token = await user.generateJWTToken();
+    const token = await User. genenateJWTToken();
     user.password = undefined;
 
     res.cookie('token', token, cookieOptions);
