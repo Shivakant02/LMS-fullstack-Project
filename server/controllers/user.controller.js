@@ -1,6 +1,6 @@
-const { use } = require("../app");
-const User = require("../models/user.model");
-const { default: AppError } = require("../utils/appError");
+import app from "../app.js";
+import User from "../models/user.model.js";
+import { default as AppError } from "../utils/appError.js";
 
 const cookieOptions = {
     secure: true,
@@ -37,7 +37,7 @@ const register =async (req,res) => {
 
 
     // if user is not created 
-    if (!use) {
+    if (!app.use) {
         return next(new AppError('user registration failed please try again.', 400));
     }
     
@@ -76,26 +76,42 @@ const login = async (req, res) => {
 
     res.status(200).json({
         success: true,
-        message: "User registered successfully",
+        message: "User logged in successfully",
         user
     })
     
 };
 
-const logOut = () => {
+const logOut = (req,res) => {
+
+    res.cookie('token', null, {
+        secure: true,
+        maxAge: 0,
+        httpOnly:true
+})
     
+    res.status(200).json({
+        success: true,
+        message:"User logged out successfully"
+    })
 };
 
-const getProfile = () => {
+const getProfile = (req,res) => {
+    const user = User.findById(req.user.id)
     
+    res.status(200).json({
+        success: true,
+        message: "user details",
+        user
+    })
 };
 
 
 
-module.exports = {
+export  {
     register,
     logOut,
     login,
-    getProfile,
+    getProfile
 
 }

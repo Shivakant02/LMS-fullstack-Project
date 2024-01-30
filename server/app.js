@@ -1,20 +1,23 @@
-const express=require('express')
-const cookieParser=require('cookie-parser')
-const cors = require('cors')
-const userRoutes = require('./routes/user.routes');
-const errorMiddleware = require('./middleware/error.middleware');
+import express, { json } from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import userRoutes from './routes/user.route.js';
+import errorMiddleware from './middleware/error.middleware.js';
+import morgan from 'morgan';
 
 // require('dotenv').config()
 
 const app = express();
 
 
-app.use(express.json());
+app.use(json());
 app.use(cors({
     origin:[ process.env.CLIENT_URL],
     credentials: true
 }))
 
+
+app.use(morgan('dev'))
 app.use(cookieParser());
 
 app.use('/ping', (req, res) => {
@@ -31,4 +34,4 @@ app.all('*', (req,res) => {
 
 app.use(errorMiddleware)
     
-module.exports=app
+export default app;
