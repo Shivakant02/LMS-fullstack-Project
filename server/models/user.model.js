@@ -1,6 +1,7 @@
 import { Schema, model } from 'mongoose'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 
 
 
@@ -14,55 +15,61 @@ const userSchema = new Schema({
         minLenght: [4, "Name must be atleast 4 character"],
         maxLenght: [20, "Name must be less than 20 characters"],
         lowercase: true,
-        trim:true
+        trim: true
     },
     email: {
         type: String,
         required: [true, "email is required"],
         unique: true,
         lowercase: true,
-        trim:true
+        trim: true
     },
     password: {
         type: String,
         required: [true, "Password required!"],
         minLenght: [8, "Password must contains  atleast 8 characters"],
-        select:false
+        select: false
     },
     role: {
         type: String,
         enum: ['USER', 'ADMIN'],
-        default:'USER',
+        default: 'USER',
     },
     avatar: {
         public_id: {
-            type:String,
+            type: String,
         },
         secure_url: {
-            type:String,
+            type: String,
         }
     },
     forgotPasswordToken: String,
-    forgotPasswordExpiry:Date
+    forgotPasswordExpiry: Date
 
 }, {
-    timestamps:true
-})
+    timestamps: true
+});
 
-userSchema.pre('save',async function (next) {
+
+
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
         return next();
     }
 
-    this.password=await bcrypt.hash(this.password,10)
+    this.password = await bcrypt.hash(this.password, 10)
 
-})
+});
+
+
 
 userSchema.methods = {
     comparePassword: async function (plainTextPassword) {
         return await bcrypt.compare(plainTextPassword, this.password);
     },
-    genenateJWTToken: function () {
+
+
+    generateJWTToken:async function () {
         return jwt.sign({
             id: this._id,
             role: this.role,
@@ -71,9 +78,21 @@ userSchema.methods = {
         },
             process.env.JWT_SECRET,
             {
-                expiresIn:process.env.JWT_EXPIRY
+                expiresIn: process.env.JWT_EXPIRY
             }
         )
+    },
+    generatePasswordToken: async function () {
+        const resetToken = crypto.randomBytes(20).toString('hex');
+
+        this.forgotPasswordExpiry = crypto
+            .createHash('sha256')
+            .update(resetToken)
+            .digest('hex')
+            ;
+        
+        this.forgotPasswordExpiry = Date.now() + 15 * 60 * 1000
+        return resetToken;
     }
     }
 
