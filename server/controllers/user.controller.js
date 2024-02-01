@@ -3,6 +3,8 @@ import User from "../models/user.model.js";
 import { default as AppError } from "../utils/appError.js";
 import cloudinary from 'cloudinary'
 import fs from 'fs/promises'
+import crypto from 'crypto'
+import sendEmail from '../utils/sendEmail.js'
 
 
 const cookieOptions = {
@@ -172,6 +174,7 @@ const forgetPassword =async (req,res,next) => {
     const subject = 'Reset password';
     const message = `You can reset password by clicking <a href=${resetPasswordUrl} target="_blank">Reset your password</a>\nIf the above link does not work for some reason then copy paste this link in new tab ${resetPasswordUrl}.\nIf you have not requested this, kindly ignore.`
     
+    console.log(resetPasswordUrl);
     try {
         await sendEmail(email, subject, message);
         
@@ -184,14 +187,41 @@ const forgetPassword =async (req,res,next) => {
         user.forgotPasswordExpiry = undefined;
         user.forgotPasswordToken = undefined;
         await user.save();
-        return next(new AppError(e.message, 500));
+        return next(new AppError(error.message, 500));
     }
 
 };
 
 //reset password
 const resetPassword =async (req,res,next) => {
+    const { resetToken } = req.params;
+    const { password } = req.body
     
+    const forgetPasswordToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex')
+    
+    
+    const user = await User.findOne({
+        forgetPasswordToken,
+        forgotPasswordExpiry:{$gt:Date.now()}
+    })
+
+    if (!user) {
+        return next(new AppError('Token is invalid or  expired , please try again', 400));
+    }
+
+    user.password = password;
+    user.forgotPasswordExpiry = undefined;
+    user.forgotPasswordToken = undefined
+    
+    await user.save()
+
+    res.status(200).json({
+        success: true,
+        message:'Password changed successfully'
+    })
 };
 
 
