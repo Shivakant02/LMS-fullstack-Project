@@ -4,7 +4,11 @@ import axiosInstance from "../Helper/axiosInstance";
 
 const initialState = {
   isLoggedIn: localStorage.getItem("isLoggedIn") || false,
-  data: JSON.parse(localStorage.getItem("data")) || {},
+  data: function () {
+    const data = localStorage.getItem("data")
+    if (data) return JSON.parse(data);
+    else return {};
+  } ,
   role: localStorage.getItem("role") || "",
 };
 
